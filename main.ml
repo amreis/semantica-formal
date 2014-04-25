@@ -9,8 +9,8 @@ let uvargen =
 	in f 0
 
 let rec typeToString t = match t with
-		TyNat -> "nat"
-		| TyBool -> "bool"
+		TyNat -> "Nat"
+		| TyBool -> "Bool"
 		| TyId(var) -> var
 		| TyArr(t1, t2) -> 
 			"(" ^ (typeToString t1) ^ " -> " ^ (typeToString t2) ^ ")"
@@ -87,9 +87,11 @@ let getConstraints (t : term) : ty * (constr list)=
 	
 let t3 = TmZero("");;
 let t2 = TmAbs("", "x", TyArr(TyId("X"), TyId("Y")), TmApp("", TmVar("", "x"), TmZero(""))) ;;
-
-print_endline "Constraints for t2:" ;
-let (t, c) = getConstraints t2 in
+let t1 = TmImplAbs("", "x", TmIsZero("", TmVar("","x"))) ;;
+print_endline "Constraints for t1:" ;
+let (t, c) = getConstraints t1 in
 printConstraints c ;
-print_endline "Type for t2:" ;
+print_endline "Type for t1:" ;
 printType t ;;
+
+
