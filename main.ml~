@@ -78,10 +78,8 @@ let getConstraints (t : term) : ty * (constr list)=
 		 			List.concat [(tyT1, TyArr(tyT2, TyId(nxtvar)))::constr1 ; constr2] )
 		 				 	
 		 	| TmVar(_, id) ->
-		 		try
-		 			let tyVar = getTypeFromContext ctx id
-			 		in (tyVar, nextuvar, [])
-		 		with TypeNotFound -> raise NotTypable
+		 		let tyVar = getTypeFromContext ctx id
+		 		in (tyVar, nextuvar, [])
 		 		
 	in
 	let (t, _, c) = genConstraints t [] uvargen
