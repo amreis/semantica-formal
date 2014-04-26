@@ -142,22 +142,17 @@ let rec occursin var t2 =
 			(occursin var s1) || (occursin var s2)
 
 let rec applySubstType (s : subst) (t : ty) = 
-	match s with
-	[] -> t
-	| (s1::s') ->
-		let rec applyS (su : (ty*ty)) (ty : ty) =
-			match ty with
-			| TyNat as x -> x
-			| TyBool as x -> x
-			| TyList(t1) -> TyList(applyS su t1)
-			| TyArr(t1,t2) -> TyArr((applyS su t1), (applyS su t2))
-			| TyId(var) -> match su with 
-				| (TyId(var1), t1) ->
-					if var = var1 then t1 else TyId(var)
-				|_ -> failwith "Never happens"
-				
+	let rec applyS (su : (ty*ty)) (ty : ty) =
+		match ty with
+		| TyNat as x -> x
+		| TyBool as x -> x
+		| TyList(t1) -> TyList(applyS su t1)
+		| TyArr(t1,t2) -> TyArr((applyS su t1), (applyS su t2))
+		| TyId(var) -> match su with 
+		| (TyId(var1), t1) ->
+			if var = var1 then t1 else TyId(var)
+		|_ -> failwith "Never happens"		
 		in
-		(* applySubstType s' (applyS s1 t) *)
 		List.fold_right applyS s t
 		
 let applySubstConstr (s : subst) (c: constr list) =
