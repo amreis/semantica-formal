@@ -3,6 +3,7 @@ type ty =
 	| TyBool
 	| TyArr of ty * ty
 	| TyId of string
+	| TyList of ty
 	
 type info = string
 
@@ -15,9 +16,16 @@ type term =
 	| TmIsZero of info * term
 	| TmIf of info * term * term * term
 	| TmAbs of info * string * ty * term
-	| TmImplAbs of info * string * term
 	| TmApp of info * term * term
 	| TmVar of info * string
+	(* EXTENSÃO : TIPAGEM IMPLÍCITA *)
+	| TmImplAbs of info * string * term
+	(* EXTENSÃO : LISTAS *)
+	| TmCons of info * term * term
+	| TmNil of info
+	| TmHead of info * term (***)
+	| TmTail of info * term (***)
+	| TmIsNil of info * term  (***)
 
 type context = (string * ty) list
 	
