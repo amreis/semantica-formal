@@ -1,3 +1,10 @@
 *.*~
 a.out
 top
+*~
+doc/*
+makedoc
+*.cmi
+*.cmo
+.depend
+.depend.input
