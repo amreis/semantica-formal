@@ -7,6 +7,10 @@ type ty =
 	
 type info = string
 
+type tyScheme = 
+	PureType of ty
+	| TypeScheme of (string list) * ty
+
 type term = 
 	TmZero
 	| TmTrue
@@ -20,16 +24,19 @@ type term =
 	| TmVar of string
 	(* EXTENSÃO : TIPAGEM IMPLÍCITA *)
 	| TmImplAbs of string * term
+	(* EXTENSÃO : LET POLIMÓRFICO *)
+	| TmLet of string * term * term
 	(* EXTENSÃO : LISTAS *)
 	| TmCons of term * term
 	| TmNil
 	| TmHead of term
 	| TmTail of term
+	
 	(* Falta: Exceções, Let Polimórfico *)
 	(*
 	| TmRaise
 	| TmTry of term * term *)
-type context = (string * ty) list
+type context = (string * tyScheme) list
 	
 type constr = (ty * ty)
 

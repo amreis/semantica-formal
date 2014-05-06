@@ -6,5 +6,4 @@ doc/*
 makedoc
 *.cmi
 *.cmo
-.depend
-.depend.input
+.depend*

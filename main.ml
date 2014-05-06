@@ -25,10 +25,25 @@ let t5 = TmCons(TmSucc(TmSucc(TmSucc(TmZero))),
 			TmCons(TmZero, TmNil)) ;;
 let t6 = (TmTail(t5));;
 let t7 = TmAbs("x", TyList(TyId("X")), TmSucc(TmHead(TmVar("x"))));;
+
+let t8 = TmAbs("x", TyNat, TmIf(TmIsZero(TmVar("x")), TmAbs("x", TyBool, 
+							TmIf(TmVar("x"), TmSucc(TmZero), TmZero)),
+							TmAbs("x", TyBool, TmIf(TmVar("x"), TmZero, TmSucc(TmZero)))));;
+							
+
 let nt1 = TmAbs("x", TyBool, TmIsZero(TmVar("x"))) ;;
 
-let (t, c) = getConstraints t7 ;;
-printTerm t7 ; print_string "Type: " ; printType t ; print_string "Constraints: \n" ; printConstraints c;;
+let tLet = TmLet("double", TmImplAbs("f", TmImplAbs("a", TmApp(TmVar("f"), TmApp(TmVar("f"), TmVar("a"))))),
+		   TmLet("a", TmApp(TmVar("double"), TmAbs("x", TyNat, TmSucc(TmSucc(TmVar("x"))))),
+		   TmLet("b", TmApp(TmApp(TmVar("double"), TmAbs("x", TyBool, TmVar("x"))), TmFalse), TmApp(TmVar("a"), TmZero))));;
+
+let ntLet = TmApp(TmApp(TmAbs("f", TyArr(TyId("X"), TyId("X")), 
+					TmAbs("x", TyId("X"), TmLet("g", TmVar("f"), TmApp(TmVar("g"), TmZero)))),
+					TmAbs("x", TyBool, TmIf(TmVar("x"), TmTrue, TmFalse))),
+					TmTrue);;
+
+let (t, c) = getConstraints ntLet ;;
+printTerm ntLet ; print_string "Type: " ; printType t ; print_string "Constraints: \n" ; printConstraints c;;
 
 let su = unify c ;;
 let (tFinal, cFinal) = (applySubstType su t, applySubstConstr su c);;

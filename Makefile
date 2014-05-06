@@ -81,10 +81,10 @@ EXEC = main
 # The Caml compilers.
 # You may fix here the path to access the Caml compiler on your machine
 # You may also have to add various -I options.
-CAMLC = ocamlc
-CAMLOPT = ocamlopt
-CAMLDEP = ocamldep
-CAMLLEX = ocamllex
+CAMLC = ocamlc -g 
+CAMLOPT = ocamlopt -g
+CAMLDEP = ocamldep 
+CAMLLEX = ocamllex  
 CAMLYACC = ocamlyacc
 
 # The list of Caml libraries needed by the program
