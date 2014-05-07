@@ -142,7 +142,7 @@ let rec typeFromScheme (genVars : string list) (baseType : ty) (nxtvar : uvargen
 	in
 	let (subst, nextvar) = (createSubst genVars [] nxtvar) in
 	(* TODO: Testar se precisa desse List.rev. Acho que não *)
-	((applySubstType (List.rev subst) baseType), nextvar)
+	((applySubstType subst baseType), nextvar)
 		
 (** Function that gets the type of a variable from the context. May raise
 	TypeNotFound exception. *)

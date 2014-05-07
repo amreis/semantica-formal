@@ -49,8 +49,8 @@ let implLength = TmImplLetRec("l",
 			 TmImplAbs("x", TmImplAbs("acc", TmTry(TmLet("h", TmHead(TmVar("x")), TmSucc(TmApp(TmApp(TmVar("l"), TmTail(TmVar("x"))), TmVar("acc")))),
 									TmVar("acc")))),
 			 TmApp(TmApp(TmVar("l"), TmCons(TmZero,TmCons(TmZero,TmCons(TmZero,TmNil)))), TmZero)) ;;
-let (t, c) = getConstraints implLength ;;
-printTerm implLength ; print_string "Type: " ; printType t ; print_string "Constraints: \n" ; printConstraints c;;
+let (t, c) = getConstraints ntLet ;;
+printTerm ntLet ; print_string "Type: " ; printType t ; print_string "Constraints: \n" ; printConstraints c;;
 
 let su = unify c ;;
 let (tFinal, cFinal) = (applySubstType su t, applySubstConstr su c);;
