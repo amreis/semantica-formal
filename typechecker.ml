@@ -1,3 +1,5 @@
+(** Module for the typechecking functions *)
+
 open Langtypes
 include Langtypes
 
@@ -20,7 +22,8 @@ let printConstraints (c : constr list) : unit =
 	print_endline "}" ;;
 
 	
-	
+(** Function that determines whether a Type Variable occurs in another 
+	type *)
 let rec occursin var t2 = 
 	match t2 with
 		TyNat | TyBool -> false
@@ -29,6 +32,7 @@ let rec occursin var t2 =
 		| TyArr(s1, s2) ->
 			(occursin var s1) || (occursin var s2)
 
+(** Function that applies a substitution to a type *)
 let rec applySubstType (s : subst) (t : ty) : ty = 
 	let rec applyS (ty : ty) (su : (ty*ty)) =
 		match ty with
@@ -43,18 +47,25 @@ let rec applySubstType (s : subst) (t : ty) : ty =
 			| _ -> failwith "Never happens"		
 		in
 		List.fold_left applyS t s	
-		
+
+(** Function that applies a substitution to a list of constraints *)
 let applySubstConstr (s : subst) (c: constr list) : constr list=
 	List.map (fun elem -> let (t1,t2) = elem in
-				((applySubstType s t1),(applySubstType s t2)))
-			 c
+				((applySubstType s t1),(applySubstType s t2))) c
+				
+(** Function that applies a substitution to a context *)
 let applySubstCtx (s: subst) (c : context) : context = 
 	List.map (fun elem -> let (var, TypeScheme(gens, ty)) = elem in
 					(var, TypeScheme(gens, applySubstType s ty))) c
+					
+(** Exception raised when a cyclic substitution like [X => X->X] would
+	be created *)
 exception CyclicSubstitution
+(** Exception raised when an AST is invalid, because it generated unsolvable
+	constraints *)
 exception NotUnifiable
 
-
+(** Function that unifies a constraint list by generating a substitution *)
 let rec unify (c: constr list) : subst = 
 	match c with
 	[] -> []
@@ -77,9 +88,13 @@ let rec unify (c: constr list) : subst =
 				unify ((s1,t1)::c')
 			| _ -> raise NotUnifiable
 
-
+(** Exception raised when the type of an identifier cannot be found in the
+	context *)
 exception TypeNotFound
+(** Exception raised when an AST is not typable *)
 exception NotTypable
+
+(** Function that removes duplicates from a list. *)
 let removeDuplicates list = 
 	let rec removeDuplicates' l1 acc = 
 		match l1 with
@@ -87,7 +102,9 @@ let removeDuplicates list =
 		| (hd::tl) -> if List.mem hd acc then removeDuplicates' tl acc
 					  else removeDuplicates' tl (hd::acc)
 	in removeDuplicates' list []  
-	  
+	
+(** Function to determine which variables in a type can be generalized in
+	the type scheme. Used to type the polymorphic let construction *)
 let generalizeVars (t : ty) (ctx : context) : string list =
 	let rec findVars (ty : ty) =
 		match ty with 
@@ -110,6 +127,9 @@ let generalizeVars (t : ty) (ctx : context) : string list =
 		List.filter (fun var -> not (isInContext var ctx)) (findVars t)
 	in result
 
+
+(** Function that, given a scheme, generates a type based on it, using a 
+	variable name generator *)
 let rec typeFromScheme (genVars : string list) (baseType : ty) (nxtvar : uvargenerator) =
 	
 	let rec createSubst gVars substAcc varGen =
@@ -124,7 +144,8 @@ let rec typeFromScheme (genVars : string list) (baseType : ty) (nxtvar : uvargen
 	(* TODO: Testar se precisa desse List.rev. Acho que não *)
 	((applySubstType (List.rev subst) baseType), nextvar)
 		
-
+(** Function that gets the type of a variable from the context. May raise
+	TypeNotFound exception. *)
 let rec getTypeFromContext (ctx : context) (var : string) (nxtvar : uvargenerator) =
 	match ctx with
 		[] -> raise TypeNotFound
@@ -133,7 +154,7 @@ let rec getTypeFromContext (ctx : context) (var : string) (nxtvar : uvargenerato
 				TypeScheme(generalized, tSch) -> 
 					typeFromScheme generalized tSch nxtvar
 			else getTypeFromContext rest var nxtvar
-
+(** Generate a set of constraints for the AST to be well typed *)
 let getConstraints (t : term) : ty * (constr list)= 
 	let rec genConstraints (t : term) (ctx : context) (nextuvar : uvargenerator) : ty * uvargenerator * (constr list) = 
 		match t with
@@ -163,21 +184,20 @@ let getConstraints (t : term) : ty * (constr list)=
 			 	let (tyT1, nxt1, constr1) = genConstraints t1 ((id, TypeScheme([],idType))::ctx) nextuvar in
 			 	(TyArr(idType, tyT1), nxt1, constr1)
 			 	
-		 	| TmApp(t1, t2) ->
+			| TmApp(t1, t2) ->	
 		 		let (tyT1, nxt1, constr1) = genConstraints t1 ctx nextuvar in
 		 		let (tyT2, nxt2, constr2) = genConstraints t2 ctx nxt1 in
 		 		let NextUVar(nxtvar, nxt3) = nxt2() in
 		 		(TyId(nxtvar), nxt3, 
 		 			List.concat [(tyT1, TyArr(tyT2, TyId(nxtvar)))::constr1 ; constr2] )
-			
-		 	| TmVar(id) ->
+			| TmVar(id) ->
 				begin
 		 		try
 		 			let (tyVar, nxt1) = getTypeFromContext ctx id nextuvar
 			 		in (tyVar, nxt1, [])
 		 		with TypeNotFound -> raise NotTypable
 		 		end
-		 	| TmImplAbs(id, t1) ->
+			| TmImplAbs(id, t1) ->
 				let NextUVar(nxtvar, nxt1) = nextuvar() in
 				let (tyT1, nxt2, constr1) = genConstraints t1 ((id, TypeScheme([],TyId(nxtvar)))::ctx) nxt1 in
 				(TyArr(TyId(nxtvar), tyT1), nxt2, constr1)
@@ -191,7 +211,7 @@ let getConstraints (t : term) : ty * (constr list)=
 			| TmNil ->
 				let NextUVar(nxtvar, nxt1) = nextuvar() in
 				(TyList(TyId(nxtvar)), nxt1, [])
-		 	| TmCons(t1, t2) ->
+			| TmCons(t1, t2) ->
 				let (tyT1, nxt1, constr1) = genConstraints t1 ctx nextuvar in
 				let (tyT2, nxt2, constr2) = genConstraints t2 ctx nxt1 in
 				(TyList(tyT1), nxt2, List.concat [(tyT2, TyList(tyT1))::constr1 ; constr2] )
