@@ -10,41 +10,6 @@ let uvargen =
 	let rec f n () = NextUVar("?X_" ^ string_of_int n, f (n+1))
 	in f 0
 
-
-let rec typeToString t = match t with
-		TyNat -> "Nat"
-		| TyBool -> "Bool"
-		| TyId(var) -> var
-		| TyList(t1) -> (typeToString t1) ^ " list"
-		| TyArr(t1, t2) -> 
-			"(" ^ (typeToString t1) ^ " -> " ^ (typeToString t2) ^ ")"
-
-let printType (t : ty) : unit =  
-	print_endline (typeToString t)
-let rec termToString (t:term) = match t with
-	| TmZero -> "0"
-	| TmTrue -> "true"
-	| TmFalse -> "false"
-	| TmSucc(t1) -> "(succ " ^ (termToString t1) ^ ")"
-	| TmPred(t1) -> "(pred " ^ (termToString t1) ^ ")"
-	| TmIsZero(t1) -> "(iszero " ^ (termToString t1) ^ ")"
-	| TmIf(t1,t2,t3) -> "(if " ^ (termToString t1) ^ " then " ^
-							termToString t2 ^ " else " ^ termToString t3 ^ ")"
-	| TmAbs(id,typ,t1) -> "(fn " ^ id ^ ":" ^ typeToString typ ^ " => " 
-								^ termToString t1 ^ ")"
-	| TmApp(t1, t2) -> "(" ^ termToString t1 ^ " " ^ termToString t2 ^ ")"
-	| TmVar(id) -> id
-	| TmImplAbs(id,t1) -> "(fn " ^ id ^ " => " ^ termToString t1 ^ ")"
-	| TmCons(t1, t2) -> "(" ^ termToString t1 ^ "::" ^ termToString t2 ^ ")"
-	| TmNil -> "[]"
-	| TmHead(t) -> "(hd " ^ termToString t ^ ")"
-	| TmTail(t) -> "(tl " ^ termToString t ^ ")"
-	| TmLet(id, t1, t2) -> "(let " ^ id ^ " = " ^ termToString t1 ^ "\nin " ^
-							termToString t2
-
-let printTerm (t : term) =
-	print_endline (termToString t)
-
 let constraintToString (c : constr) : string = 
 	let (t1, t2) = c in
 	(typeToString t1) ^ " = " ^ (typeToString t2)
@@ -84,10 +49,7 @@ let applySubstConstr (s : subst) (c: constr list) : constr list=
 				((applySubstType s t1),(applySubstType s t2)))
 			 c
 let applySubstCtx (s: subst) (c : context) : context = 
-	List.map (fun elem -> let (var, t2) = elem in
-				match t2 with
-				PureType(ty) ->	(var, PureType(applySubstType s ty))
-				| TypeScheme(gens,ty) -> 
+	List.map (fun elem -> let (var, TypeScheme(gens, ty)) = elem in
 					(var, TypeScheme(gens, applySubstType s ty))) c
 exception CyclicSubstitution
 exception NotUnifiable
@@ -139,10 +101,10 @@ let generalizeVars (t : ty) (ctx : context) : string list =
 	let rec isInContext var ctx = 
 		match ctx with
 		[] -> false
-		| ((v,t)::rest) ->
-			match t with 
-			PureType(ty) ->	occursin var ty || isInContext var rest
-			| TypeScheme(_) -> isInContext var rest
+		| ((v,TypeScheme(vars,ty))::rest) ->
+			match vars with 
+			[] ->	occursin var ty || isInContext var rest
+			| _ -> isInContext var rest
 	in
 	let result = 
 		List.filter (fun var -> not (isInContext var ctx)) (findVars t)
@@ -168,8 +130,7 @@ let rec getTypeFromContext (ctx : context) (var : string) (nxtvar : uvargenerato
 		[] -> raise TypeNotFound
 		| ((v,t)::rest) ->
 			if var = v then match t with
-				| PureType(t1) -> (t1, nxtvar)
-				| TypeScheme(generalized, tSch) -> 
+				TypeScheme(generalized, tSch) -> 
 					typeFromScheme generalized tSch nxtvar
 			else getTypeFromContext rest var nxtvar
 
@@ -199,7 +160,7 @@ let getConstraints (t : term) : ty * (constr list)=
 				List.concat [(tyT1,TyBool)::(tyT2,tyT3)::constr1 ;
 							 constr2 ; constr3 ] )
 			| TmAbs(id, idType, t1) ->
-			 	let (tyT1, nxt1, constr1) = genConstraints t1 ((id, PureType(idType))::ctx) nextuvar in
+			 	let (tyT1, nxt1, constr1) = genConstraints t1 ((id, TypeScheme([],idType))::ctx) nextuvar in
 			 	(TyArr(idType, tyT1), nxt1, constr1)
 			 	
 		 	| TmApp(t1, t2) ->
@@ -210,7 +171,7 @@ let getConstraints (t : term) : ty * (constr list)=
 		 			List.concat [(tyT1, TyArr(tyT2, TyId(nxtvar)))::constr1 ; constr2] )
 			
 		 	| TmVar(id) ->
-		 		begin
+				begin
 		 		try
 		 			let (tyVar, nxt1) = getTypeFromContext ctx id nextuvar
 			 		in (tyVar, nxt1, [])
@@ -218,7 +179,7 @@ let getConstraints (t : term) : ty * (constr list)=
 		 		end
 		 	| TmImplAbs(id, t1) ->
 				let NextUVar(nxtvar, nxt1) = nextuvar() in
-				let (tyT1, nxt2, constr1) = genConstraints t1 ((id, PureType(TyId(nxtvar)))::ctx) nxt1 in
+				let (tyT1, nxt2, constr1) = genConstraints t1 ((id, TypeScheme([],TyId(nxtvar)))::ctx) nxt1 in
 				(TyArr(TyId(nxtvar), tyT1), nxt2, constr1)
 			| TmLet(id, t1, t2) ->
 				let (t1T, nxt1, t1C) = genConstraints t1 ctx nextuvar in
@@ -227,14 +188,15 @@ let getConstraints (t : term) : ty * (constr list)=
 				let genVars = generalizeVars newT1T newCtx in
 				let (tyT2, nxt2, constr2) = genConstraints t2 ((id, TypeScheme(genVars,newT1T))::newCtx) nxt1 in
 				(tyT2, nxt2, constr2)
+			| TmNil ->
+				let NextUVar(nxtvar, nxt1) = nextuvar() in
+				(TyList(TyId(nxtvar)), nxt1, [])
 		 	| TmCons(t1, t2) ->
 				let (tyT1, nxt1, constr1) = genConstraints t1 ctx nextuvar in
 				let (tyT2, nxt2, constr2) = genConstraints t2 ctx nxt1 in
 				(TyList(tyT1), nxt2, List.concat [(tyT2, TyList(tyT1))::constr1 ; constr2] )
 				
-			| TmNil ->
-				let NextUVar(nxtvar, nxt1) = nextuvar() in
-				(TyList(TyId(nxtvar)), nxt1, [])
+			
 			| TmHead(t1) ->
 				let (tyT1, nxt1, constr1) = genConstraints t1 ctx nextuvar in
 				let NextUVar(nxtvar, nxt2) = nxt1() in
@@ -243,7 +205,24 @@ let getConstraints (t : term) : ty * (constr list)=
 				let (tyT1, nxt1, constr1) = genConstraints t1 ctx nextuvar in
 				let NextUVar(nxtvar, nxt2) = nxt1() in
 				(TyList(TyId(nxtvar)), nxt2, (tyT1, TyList(TyId(nxtvar)))::constr1)
-			
+			| TmRaise ->
+				let NextUVar(var, nxt1) = nextuvar() in
+				(TyId(var), nxt1, [])
+			| TmTry(t1,t2) ->
+				let (tyT1, nxt1, constr1) = genConstraints t1 ctx nextuvar in
+				let (tyT2, nxt2, constr2) = genConstraints t1 ctx nxt1 in
+				(tyT2, nxt2, List.concat[ (tyT1,tyT2)::constr1 ; constr2 ])
+			| TmLetRec(id,ty,t1,t2) ->
+				let (tyT1, nxt1, constr1) = genConstraints t1 ((id, TypeScheme([], ty))::ctx) nextuvar in
+				let (tyT2, nxt2, constr2) = genConstraints t2 ((id, TypeScheme([], ty))::ctx) nxt1 in
+				(tyT2, nxt2, List.concat [ (tyT1,ty)::constr1; constr2; ])
+			| TmImplLetRec(id,t1,t2) ->
+				let NextUVar(var1, nxt1) = nextuvar() in
+				let NextUVar(var2, nxt2) = nxt1() in
+				let ty = TyArr(TyId(var1), TyId(var2)) in
+				let (tyT1, nxt3, constr1) = genConstraints t1 ((id, TypeScheme([], ty))::ctx) nxt2 in
+				let (tyT2, nxt4, constr2) = genConstraints t2 ((id, TypeScheme([], ty))::ctx) nxt3 in
+				(tyT2, nxt4, List.concat [ constr1; constr2 ])
 	in
 	let (t, _, c) = genConstraints t [] uvargen
 	in (t,c)
