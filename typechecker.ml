@@ -241,8 +241,14 @@ let getConstraints (t : term) : ty * (constr list)=
 				let NextUVar(var2, nxt2) = nxt1() in
 				let ty = TyArr(TyId(var1), TyId(var2)) in
 				let (tyT1, nxt3, constr1) = genConstraints t1 ((id, TypeScheme([], ty))::ctx) nxt2 in
-				let (tyT2, nxt4, constr2) = genConstraints t2 ((id, TypeScheme([], ty))::ctx) nxt3 in
-				(tyT2, nxt4, List.concat [ constr1; constr2 ])
+				print_endline "Typing sub-expression " ; printTerm t1;
+				print_endline "Type: " ; printType tyT1 ; 
+				print_endline "Constraints: "; printConstraints constr1;
+				let t1S = unify constr1 in
+				let (newCtx, newTyT1) = (applySubstCtx t1S ctx, applySubstType t1S tyT1) in
+				let genVars = generalizeVars newTyT1 newCtx in
+				let (tyT2, nxt4, constr2) = genConstraints t2 ((id, TypeScheme(genVars, newTyT1))::ctx) nxt3 in
+				(tyT2, nxt4, constr2)
 	in
 	let (t, _, c) = genConstraints t [] uvargen
 	in (t,c)
