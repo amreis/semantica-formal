@@ -43,16 +43,16 @@ let ntLet = TmApp(TmApp(TmAbs("f", TyArr(TyId("X"), TyId("X")),
 					TmAbs("x", TyId("X"), TmLet("g", TmVar("f"), TmApp(TmVar("g"), TmZero)))),
 					TmAbs("x", TyBool, TmIf(TmVar("x"), TmTrue, TmFalse))),
 					TmTrue);;
-let length = TmLetRec("l", TyArr(TyList(TyId("X")), TyArr(TyNat, TyNat)), 
-			 TmImplAbs("x", TmImplAbs("acc", TmTry(TmLet("h", TmHead(TmVar("x")), TmSucc(TmApp(TmApp(TmVar("l"), TmTail(TmVar("x"))), TmSucc(TmVar("acc"))))),
+let lengthT = TmLetRec("l", TyArr(TyList(TyId("X")), TyArr(TyNat, TyNat)), 
+			 TmImplAbs("x", TmImplAbs("acc", TmTry(TmLet("h", TmHead(TmVar("x")), TmApp(TmApp(TmVar("l"), TmTail(TmVar("x"))), TmSucc(TmVar("acc")))),
 									TmVar("acc")))),
 			 TmApp(TmApp(TmVar("l"), TmCons(TmZero,TmCons(TmZero,TmCons(TmZero,TmNil)))), TmZero)) ;;
-let implLength = TmImplLetRec("l",
-			 TmImplAbs("x", TmImplAbs("acc", TmTry(TmLet("h", TmHead(TmVar("x")), TmSucc(TmApp(TmApp(TmVar("l"), TmTail(TmVar("x"))), TmVar("acc")))),
+let implLengthT = TmImplLetRec("l",
+			 TmImplAbs("x", TmImplAbs("acc", TmTry(TmLet("h", TmHead(TmVar("x")), TmApp(TmApp(TmVar("l"), TmTail(TmVar("x"))), TmSucc(TmVar("acc")))),
 									TmVar("acc")))),
 			 TmApp(TmApp(TmVar("l"), TmCons(TmZero,TmCons(TmZero,TmCons(TmZero,TmNil)))), TmZero)) ;;
 			 
-let giantTerm = TmIf(TmIsZero(implLength), TmSucc(tLet), TmSucc(tst_letRecPoly));;
+let giantTerm = TmIf(TmIsZero(implLengthT), TmSucc(tLet), TmSucc(tst_letRecPoly));;
 
 let simpleApp = TmApp(TmImplAbs("x", TmSucc(TmVar("x"))), TmZero);;
 
@@ -63,14 +63,16 @@ let tryTerm = TmTry(TmHead(TmNil), TmTry(TmTail(TmNil), TmTry(TmHead(TmCons(TmTr
 let dummyRec = TmImplLetRec("x", TmImplAbs("n", TmIf(TmIsZero(TmVar("n")), TmSucc(TmZero), TmApp(TmVar("x"), TmPred(TmVar("n"))))),
 				TmApp(TmVar("x"), TmSucc(TmSucc(TmSucc(TmZero)))));;
 
-let (t, c) = getConstraints giantTerm ;;
-printTerm giantTerm ; print_string "Type: " ; printType t ; print_string "Constraints: \n" ; printConstraints c;;
+let nList = TmCons(TmZero, TmCons(TmSucc(TmZero), TmCons(TmTrue, TmCons(TmFalse, TmNil)))) ;;
+
+let (t, c) = getConstraints implLengthT ;;
+printTerm implLengthT ; print_string "Type: " ; printType t ; print_string "Constraints: \n" ; printConstraints c;;
 
 let su = unify c ;;
 print_endline "Solving substitution: ";;
 printSubst su;;
 let (tFinal, cFinal) = (applySubstType su t, applySubstConstr su c);;
 print_endline "Final type:" ; print_string "\t" ; printType tFinal ;;
-let r = eval giantTerm uvargen in
+let r = eval_stepping implLengthT in
 printTerm (r)
 

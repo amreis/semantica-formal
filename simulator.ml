@@ -199,10 +199,26 @@ let rec step (t : term) (nxt : uvargenerator) : (term * uvargenerator) =
 		| _ -> raise NoRuleApplies
 		
 let discard (s:string) : unit = ()
-let rec eval (t : term) (nxt : uvargenerator) =
-	try
-		printTerm t; discard(input_line stdin) ;
-		let (t', nxt1) = step t nxt in
-		eval t' nxt1
-	with
-		NoRuleApplies -> t
+let eval_stepping (t : term) : term = 
+	let rec e t nxt =
+		try 
+			print_endline "";
+			printTerm t;
+			discard(input_line stdin) ;
+			let (t', nxt') = step t nxt in
+			e t' nxt'
+		with
+			NoRuleApplies -> t
+	in
+	e t uvargen
+let eval (t : term) : term = 
+	let rec e t nxt = 
+		try
+			print_endline "";
+			printTerm t;
+			let (t', nxt') = step t nxt in
+			e t' nxt'
+		with
+			NoRuleApplies -> t
+	in 
+	e t uvargen
