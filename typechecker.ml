@@ -3,14 +3,6 @@
 open Langtypes
 include Langtypes
 
-(** Utilitary Type for generating new variables *)
-type nextuvar = NextUVar of string * uvargenerator
-	and uvargenerator = unit -> nextuvar
-(** Function that generates two things: the new variable and the function
-	that must be used to generate the next variable *)
-let uvargen =
-	let rec f n () = NextUVar("?X_" ^ string_of_int n, f (n+1))
-	in f 0
 
 let constraintToString (c : constr) : string = 
 	let (t1, t2) = c in
@@ -21,7 +13,17 @@ let printConstraints (c : constr list) : unit =
 	(List.iter (fun x -> print_endline ("\t" ^ (constraintToString x))) c) ;
 	print_endline "}" ;;
 
-	
+let printSubst (s : subst) : unit = 
+	print_string "[";
+	let rec substToString su = 
+		match su with
+		[] -> ""
+		| ((ty1,ty2)::rest) ->
+			(typeToString ty1 ^ " => " ^ typeToString ty2)
+				^ (if rest = [] then " ]" else ", ") ^
+				  (substToString rest)
+	in print_endline (substToString s) 
+			
 (** Function that determines whether a Type Variable occurs in another 
 	type *)
 let rec occursin var t2 = 
@@ -205,9 +207,12 @@ let getConstraints (t : term) : ty * (constr list)=
 				let (t1T, nxt1, t1C) = genConstraints t1 ctx nextuvar in
 				let t1S = unify t1C in
 				let (newCtx, newT1T) = (applySubstCtx t1S ctx, applySubstType t1S t1T) in
+				print_endline "Typing sub-expression " ; printTerm t1;
+				print_endline "Type: " ; printType t1T ; 
+				print_endline "Constraints: "; printConstraints t1C;
 				let genVars = generalizeVars newT1T newCtx in
 				let (tyT2, nxt2, constr2) = genConstraints t2 ((id, TypeScheme(genVars,newT1T))::newCtx) nxt1 in
-				(tyT2, nxt2, constr2)
+				(tyT2, nxt2, List.concat[ t1C; constr2 ])
 			| TmNil ->
 				let NextUVar(nxtvar, nxt1) = nextuvar() in
 				(TyList(TyId(nxtvar)), nxt1, [])
@@ -248,7 +253,7 @@ let getConstraints (t : term) : ty * (constr list)=
 				let (newCtx, newTyT1) = (applySubstCtx t1S ctx, applySubstType t1S tyT1) in
 				let genVars = generalizeVars newTyT1 newCtx in
 				let (tyT2, nxt4, constr2) = genConstraints t2 ((id, TypeScheme(genVars, newTyT1))::ctx) nxt3 in
-				(tyT2, nxt4, constr2)
+				(tyT2, nxt4, List.concat[constr1; constr2])
 	in
 	let (t, _, c) = genConstraints t [] uvargen
 	in (t,c)

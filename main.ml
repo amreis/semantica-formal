@@ -44,16 +44,33 @@ let ntLet = TmApp(TmApp(TmAbs("f", TyArr(TyId("X"), TyId("X")),
 					TmAbs("x", TyBool, TmIf(TmVar("x"), TmTrue, TmFalse))),
 					TmTrue);;
 let length = TmLetRec("l", TyArr(TyList(TyId("X")), TyArr(TyNat, TyNat)), 
-			 TmImplAbs("x", TmImplAbs("acc", TmTry(TmLet("h", TmHead(TmVar("x")), TmSucc(TmApp(TmApp(TmVar("l"), TmTail(TmVar("x"))), TmVar("acc")))),
+			 TmImplAbs("x", TmImplAbs("acc", TmTry(TmLet("h", TmHead(TmVar("x")), TmSucc(TmApp(TmApp(TmVar("l"), TmTail(TmVar("x"))), TmSucc(TmVar("acc"))))),
 									TmVar("acc")))),
 			 TmApp(TmApp(TmVar("l"), TmCons(TmZero,TmCons(TmZero,TmCons(TmZero,TmNil)))), TmZero)) ;;
 let implLength = TmImplLetRec("l",
 			 TmImplAbs("x", TmImplAbs("acc", TmTry(TmLet("h", TmHead(TmVar("x")), TmSucc(TmApp(TmApp(TmVar("l"), TmTail(TmVar("x"))), TmVar("acc")))),
 									TmVar("acc")))),
 			 TmApp(TmApp(TmVar("l"), TmCons(TmZero,TmCons(TmZero,TmCons(TmZero,TmNil)))), TmZero)) ;;
-let (t, c) = getConstraints implLength ;;
-printTerm implLength ; print_string "Type: " ; printType t ; print_string "Constraints: \n" ; printConstraints c;;
+			 
+let giantTerm = TmIf(TmIsZero(implLength), TmSucc(tLet), TmSucc(tst_letRecPoly));;
+
+let simpleApp = TmApp(TmImplAbs("x", TmSucc(TmVar("x"))), TmZero);;
+
+let listTerm = TmHead(TmCons(TmSucc(TmZero), 
+				TmCons(
+				TmApp(TmImplAbs("x", TmIf(TmIsZero(TmVar("x")), TmSucc(TmVar("x")), TmVar("x"))), TmSucc(TmSucc(TmZero))), TmNil))) ;;
+let tryTerm = TmTry(TmHead(TmNil), TmTry(TmTail(TmNil), TmTry(TmHead(TmCons(TmTrue,TmNil)), TmNil)));;
+let dummyRec = TmImplLetRec("x", TmImplAbs("n", TmIf(TmIsZero(TmVar("n")), TmSucc(TmZero), TmApp(TmVar("x"), TmPred(TmVar("n"))))),
+				TmApp(TmVar("x"), TmSucc(TmSucc(TmSucc(TmZero)))));;
+
+let (t, c) = getConstraints giantTerm ;;
+printTerm giantTerm ; print_string "Type: " ; printType t ; print_string "Constraints: \n" ; printConstraints c;;
 
 let su = unify c ;;
+print_endline "Solving substitution: ";;
+printSubst su;;
 let (tFinal, cFinal) = (applySubstType su t, applySubstConstr su c);;
 print_endline "Final type:" ; print_string "\t" ; printType tFinal ;;
+let r = eval giantTerm uvargen in
+printTerm (r)
+

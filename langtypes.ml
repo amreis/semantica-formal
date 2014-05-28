@@ -65,7 +65,7 @@ let rec termToString (t:term) = match t with
 	| TmVar(id) -> id
 	| TmImplAbs(id,t1) -> "(fn " ^ id ^ " => " ^ termToString t1 ^ ")"
 	| TmLet(id, t1, t2) -> "(let " ^ id ^ " = " ^ termToString t1 ^ "\nin " ^
-							termToString t2
+							termToString t2 ^ ")"
 	| TmNil -> "[]"
 	| TmCons(t1, t2) -> "(" ^ termToString t1 ^ "::" ^ termToString t2 ^ ")"
 	| TmHead(t) -> "(hd " ^ termToString t ^ ")"
@@ -74,10 +74,38 @@ let rec termToString (t:term) = match t with
 	| TmTry(t1, t2) -> "(try " ^ termToString t1 ^ " with " ^ termToString t2 ^ ")"
 	| TmLetRec(id,ty,t1,t2) -> 
 		"(let rec " ^ id ^ ":" ^ typeToString ty ^ " = " ^ termToString t1 ^
-			" in " ^ termToString t2
+			" in " ^ termToString t2 ^ ")"
 	| TmImplLetRec(id, t1, t2) ->
 		"(let rec " ^ id ^ " = " ^ termToString t1 ^
-			" in " ^ termToString t2
+			" in " ^ termToString t2 ^ ")"
 let printTerm (t : term) =
 	print_endline (termToString t)
 
+(** Utilitary Type for generating new variables *)
+type nextuvar = NextUVar of string * uvargenerator
+	and uvargenerator = unit -> nextuvar
+(** Function that generates two things: the new variable and the function
+	that must be used to generate the next variable *)
+let uvargen =
+	let rec f n () = NextUVar("?X_" ^ string_of_int n, f (n+1))
+	in f 0
+
+
+let rec isnumber (t : term) = 
+	match t with
+	TmZero -> true
+	| TmSucc(t') -> isnumber t'
+	| _ -> false
+let rec isvalue (t : term) = 
+	isnumber t ||
+		( match t with
+			TmImplAbs(_,_) 	-> true
+			| TmAbs(_,_,_) 	-> true
+			| TmVar(_) 		-> true
+			| TmNil 		-> true
+			| TmTrue		-> true
+			| TmFalse		-> true
+			| TmCons(t1,t2) ->
+				isvalue t1 && isvalue t2 
+			| _ 			-> false)
+				
