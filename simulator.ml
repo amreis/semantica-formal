@@ -198,7 +198,7 @@ let rec step (t : term) (nxt : uvargenerator) : (term * uvargenerator) =
 			(TmImplLetRec(id, t1', t2), nxt1)
 		| _ -> raise NoRuleApplies
 		
-let discard (s:string) : unit = ()
+let discard (s: 'a) : unit = ()
 let eval_stepping (t : term) : term = 
 	let rec e t nxt =
 		try 

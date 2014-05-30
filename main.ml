@@ -65,14 +65,16 @@ let dummyRec = TmImplLetRec("x", TmImplAbs("n", TmIf(TmIsZero(TmVar("n")), TmSuc
 
 let nList = TmCons(TmZero, TmCons(TmSucc(TmZero), TmCons(TmTrue, TmCons(TmFalse, TmNil)))) ;;
 
-let (t, c) = getConstraints implLengthT ;;
-printTerm implLengthT ; print_string "Type: " ; printType t ; print_string "Constraints: \n" ; printConstraints c;;
+let autoApp = TmImplAbs("x", TmApp(TmVar("x"), TmVar("x")));;
+
+let (t, c) = getConstraints giantTerm ;;
+printTerm giantTerm ; print_string "Type: " ; printType t ; print_string "Constraints: \n" ; printConstraints c;;
 
 let su = unify c ;;
 print_endline "Solving substitution: ";;
 printSubst su;;
 let (tFinal, cFinal) = (applySubstType su t, applySubstConstr su c);;
 print_endline "Final type:" ; print_string "\t" ; printType tFinal ;;
-let r = eval_stepping implLengthT in
+let r = eval_stepping giantTerm in
 printTerm (r)
 
