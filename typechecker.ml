@@ -34,8 +34,12 @@ let rec occursin var t2 =
 		| TyArr(s1, s2) ->
 			(occursin var s1) || (occursin var s2)
 
-(** Function that applies a substitution to a type *)
-let rec applySubstType (s : subst) (t : ty) : ty = 
+(** Function that applies a substitution to a type. The substitution is a stack
+	of necessary mappings. We must apply first the first mapping of the list, then
+	the second, and so on. The auxiliary applyS function applies a SINGLE mapping
+	to a type. Therefore, we must iterate over the whole substitution and apply a
+	mapping over the other's result. That's why we use List.fold_left. 			*)
+let rec applySubstType (s : subst) (t : ty) : ty =
 	let rec applyS (ty : ty) (su : (ty*ty)) =
 		match ty with
 		| TyNat as x -> x
@@ -48,15 +52,24 @@ let rec applySubstType (s : subst) (t : ty) : ty =
 				if var = var1 then t1 else TyId(var)
 			| _ -> failwith "Never happens"		
 		in
+		(* 	To get the idea of what's going on here...
+			applyS (applyS(applyS(t s1) s2) s3) s4  
+			It's something like this /\
+			where s1,...,s4 are the elements of the argument s	*)
 		List.fold_left applyS t s	
 
 (** Function that applies a substitution to a list of constraints *)
-let applySubstConstr (s : subst) (c: constr list) : constr list=
+let applySubstConstr (s : subst) (c: constr list) : constr list =
+	(* 	Applying a substitution to a list of constraints is simply applying it
+		to each pair's elements independently and repeating that for each pair in
+		the list. This characterizes a 'map' operation *)
 	List.map (fun elem -> let (t1,t2) = elem in
 				((applySubstType s t1),(applySubstType s t2))) c
 				
 (** Function that applies a substitution to a context *)
 let applySubstCtx (s: subst) (c : context) : context = 
+	(*	Applying a substitution to a context is simply applying it to the base type
+		of every type scheme that the context contains and keeping the rest untouched. *)
 	List.map (fun elem -> let (var, TypeScheme(gens, ty)) = elem in
 					(var, TypeScheme(gens, applySubstType s ty))) c
 					
@@ -69,6 +82,7 @@ exception NotUnifiable
 
 (** Function that unifies a constraint list by generating a substitution *)
 let rec unify (c: constr list) : subst = 
+	(* Chapter 22. A little modified to support list types. *)
 	match c with
 	[] -> []
 	| ((s,t)::c') ->
@@ -108,6 +122,10 @@ let removeDuplicates list =
 (** Function to determine which variables in a type can be generalized in
 	the type scheme. Used to type the polymorphic let construction *)
 let generalizeVars (t : ty) (ctx : context) : string list =
+	(* 	The variables that can be generalized are the 'free' variables in the type.
+		In other words, every variable that does not occur in the context can be
+		generalized when calculating the Type Scheme associated to an identifier.
+		Reference: Chapter 22, Let-Based Polymorphism *)
 	let rec findVars (ty : ty) =
 		match ty with 
 		| TyNat -> []
