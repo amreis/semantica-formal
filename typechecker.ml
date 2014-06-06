@@ -103,7 +103,29 @@ let rec unify (c: constr list) : subst =
 			|(TyList(s1), TyList(t1)) ->
 				unify ((s1,t1)::c')
 			| _ -> raise NotUnifiable
-
+let unify' (c : constr list) : subst = 
+	let rec u c acc = 
+	match c with
+	[] -> acc
+	| ((s,t)::c') ->
+		match (s,t) with
+			  (x,y) when x = y -> u c' acc
+			| (TyId(var), t) ->
+				if not (occursin var t) then
+					let subst = (TyId(var), t) in
+					u (applySubstConstr [subst] c') subst::acc
+				else raise CyclicSubstitution
+			| (s, TyId(var)) ->
+				if not (occursin var s) then
+					let subst = (TyId(var), s) in
+					u (applySubstConstr [subst] c') subst::acc
+			| (TyArr(s1,s2), TyArr(t1,t2)) ->
+				u ((s1,t1)::(s2,t2)::c') acc
+			| (TyList(s1), TyList(t1)) ->
+				u ((s1,t1)::c') acc
+			| _ -> raise NotUnifiable
+	in
+	u c []
 (** Exception raised when the type of an identifier cannot be found in the
 	context *)
 exception TypeNotFound
