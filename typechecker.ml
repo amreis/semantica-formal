@@ -104,7 +104,7 @@ let rec unify (c: constr list) : subst =
 				unify ((s1,t1)::c')
 			| _ -> raise NotUnifiable
 let unify' (c : constr list) : subst = 
-	let rec u c acc = 
+	let rec u (c : constr list) (acc : subst) = 
 	match c with
 	[] -> acc
 	| ((s,t)::c') ->
@@ -113,12 +113,13 @@ let unify' (c : constr list) : subst =
 			| (TyId(var), t) ->
 				if not (occursin var t) then
 					let subst = (TyId(var), t) in
-					u (applySubstConstr [subst] c') subst::acc
+					u (applySubstConstr [subst] c') (subst::acc)
 				else raise CyclicSubstitution
 			| (s, TyId(var)) ->
 				if not (occursin var s) then
 					let subst = (TyId(var), s) in
-					u (applySubstConstr [subst] c') subst::acc
+					u (applySubstConstr [subst] c') (subst::acc)
+				else raise CyclicSubstitution
 			| (TyArr(s1,s2), TyArr(t1,t2)) ->
 				u ((s1,t1)::(s2,t2)::c') acc
 			| (TyList(s1), TyList(t1)) ->

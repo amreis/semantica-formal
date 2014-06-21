@@ -70,7 +70,7 @@ let autoApp = TmImplAbs("x", TmApp(TmVar("x"), TmVar("x")));;
 let (t, c) = getConstraints giantTerm ;;
 printTerm giantTerm ; print_string "Type: " ; printType t ; print_string "Constraints: \n" ; printConstraints c;;
 
-let su = unify c ;;
+let su = unify' c ;;
 print_endline "Solving substitution: ";;
 printSubst su;;
 let (tFinal, cFinal) = (applySubstType su t, applySubstConstr su c);;
