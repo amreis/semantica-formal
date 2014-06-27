@@ -53,7 +53,7 @@ let rec applySubstType (s : subst) (t : ty) : ty =
 			| _ -> failwith "Never happens"		
 		in
 		(* 	To get the idea of what's going on here...
-			applyS (applyS(applyS(t s1) s2) s3) s4  
+			applyS (applyS (applyS(applyS t s1) s2) s3) s4  
 			It's something like this /\
 			where s1,...,s4 are the elements of the argument s	*)
 		List.fold_left applyS t s	
