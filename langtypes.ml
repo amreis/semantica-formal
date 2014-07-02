@@ -98,6 +98,7 @@ let printTerm (t : term) =
 (** Utilitary Type for generating new variables *)
 type nextuvar = NextUVar of string * uvargenerator
 	and uvargenerator = unit -> nextuvar
+	
 (** Function that generates two things: the new variable and the function
 	that must be used to generate the next variable *)
 let uvargen =

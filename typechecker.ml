@@ -234,6 +234,9 @@ let getConstraints (t : term) : ty * (constr list)=
 		 		(TyId(nxtvar), nxt3, 
 		 			List.concat [(tyT1, TyArr(tyT2, TyId(nxtvar)))::constr1 ; constr2] )
 			| TmVar(id) ->
+				(** Here happes the let-based polymorphism magic. When you recover the 
+					type from the context, if there are generalized variables in it, they will 
+					be replaced by new variables. *)
 				begin
 		 		try
 		 			let (tyVar, nxt1) = getTypeFromContext ctx id nextuvar
